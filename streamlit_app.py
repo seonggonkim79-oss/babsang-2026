@@ -91,7 +91,48 @@ elif role == "👨‍🍳 사장님 (Owner)":
         st.success(f"🎉 예약 확정 {len(my_matches)}건")
         st.dataframe(pd.DataFrame(my_matches)[['timestamp', 'offer']])
 
-# --- 3. 관리자 화면 ---
+# --- 3. 관리자 화면 (CEO 대시보드) ---
 elif role == "📊 관리자 (Admin)":
-    st.title("시스템 현황")
-    st.write("매칭 로그:", st.session_state.matches)
+    st.title("📊 CEO 대시보드")
+    st.markdown("---")
+    
+    # 1. 핵심 지표 (KPI) 계산
+    total_matches = len(st.session_state.matches)
+    total_requests = len(st.session_state.requests)
+    # 가상의 객단가 (5만원) 적용하여 거래액 추산
+    estimated_revenue = total_matches * 50000 
+    
+    # 2. 숫자판 (Metrics) 표시
+    col1, col2, col3 = st.columns(3)
+    col1.metric("💰 누적 거래액 (GMV)", f"{estimated_revenue:,} 원", "실시간 집계")
+    col2.metric("🤝 매칭 성사", f"{total_matches} 건", f"전체 요청 {total_requests}건 중")
+    col3.metric("📉 평균 할인율", "18.5%", "사장님 설정 평균")
+
+    st.markdown("---")
+
+    # 3. 데이터가 있을 때만 그래프와 표 보여주기
+    if st.session_state.matches:
+        df_matches = pd.DataFrame(st.session_state.matches)
+        
+        # 보기 좋게 컬럼 정리
+        display_df = df_matches[['timestamp', 'owner_name', 'offer', 'tag']]
+        display_df.columns = ['체결시간', '가게명', '제공혜택', '구분']
+        
+        c1, c2 = st.columns([2, 1])
+        with c1:
+            st.subheader("📈 실시간 체결 현황")
+            st.dataframe(display_df, use_container_width=True)
+        with c2:
+            st.subheader("🏆 인기 가게")
+            st.bar_chart(df_matches['owner_name'].value_counts())
+            
+        # 엑셀 다운로드 버튼 (투자자 미팅용)
+        csv = display_df.to_csv(index=False).encode('utf-8-sig')
+        st.download_button(
+            label="💾 거래 장부 엑셀 다운로드",
+            data=csv,
+            file_name='babsang_revenue.csv',
+            mime='text/csv',
+        )
+    else:
+        st.info("아직 성사된 거래가 없습니다. 손님과 사장님 역할로 거래를 만들어보세요!")
